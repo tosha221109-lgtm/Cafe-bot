@@ -320,6 +320,7 @@ CAFE_INFO = {
 }
 
 
+
 # In-memory state
 review_state = {}
 subscribers = set()
@@ -351,12 +352,54 @@ def cmd_start(message):
 
 @bot.message_handler(func=lambda m: m.text == "ℹ️ О нас")
 def about(message):
-    text = (f"🌶 *{CAFE_INFO['name']}*\n\n"
+    text = (f"🌶️ *{CAFE_INFO['name']}*\n\n"
             f"📍 {CAFE_INFO['address']}\n"
             f"📞 {CAFE_INFO['phone']}\n"
             f"🕐 Часы работы:\n{CAFE_INFO['hours']}\n\n"
             f"🎉 Акция: закажи 3 настойки — получи 4-ю в подарок!")
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+
+@bot.message_handler(func=lambda m: m.text == "⭐️ Оставить отзыв")
+def ask_review(message):
+    review_state[message.chat.id] = True
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.KeyboardButton("❌ Отмена"))
+    bot.send_message(message.chat.id, "⭐️ Оставьте отзыв\n\nНапишите что думаете о нас!", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: m.text == "❌ Отмена")
+def cancel_action(message):
+    review_state.pop(message.chat.id, None)
+    bot.send_message(message.chat.id, "Хорошо, возвращаемся в меню!", reply_markup=main_menu_keyboard())
+
+@bot.message_handler(func=lambda m: review_state.get(m.chat.id))
+def receive_review(message):
+    review_state.pop(message.chat.id, None)
+    user = message.from_user
+    username = f"@{user.username}" if user.username else "без username"
+    name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "Аноним"
+    notify_admin("⭐️ *Новый отзыв!*\n\n" + f"Имя: {name} ({username})\nТекст: {message.text}")
+    bot.send_message(message.chat.id, "✅ Спасибо за отзыв! Мы ценим вашу обратную связь 🙏", reply_markup=main_menu_keyboard())
+
+@bot.message_handler(func=lambda m: m.text == "🔔 Акции и новости")
+def subscribe(message):
+    uid = message.chat.id
+    if uid in subscribers:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("❌ Отписаться", callback_data="unsubscribe"))
+        bot.send_message(uid, "🔔 Вы уже подписаны на новости!", reply_markup=markup)
+    else:
+        subscribers.add(uid)
+        user = message.from_user
+        username = f"@{user.username}" if user.username else "без username"
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "Аноним"
+        notify_admin("🔔 *Новый подписчик!*\n\n" + f"{name} ({username})\nВсего: {len(subscribers)}")
+        bot.send_message(uid, "✅ Вы подписались на акции Sweet Pepper! 🌶️", reply_markup=main_menu_keyboard())
+
+@bot.callback_query_handler(func=lambda c: c.data == "unsubscribe")
+def unsubscribe(call):
+    bot.answer_callback_query(call.id)
+    subscribers.discard(call.message.chat.id)
+    bot.send_message(call.message.chat.id, "🔕 Вы отписались от новостей.", reply_markup=main_menu_keyboard())
 
 @bot.message_handler(func=lambda m: m.text in MENU.keys())
 def show_category(message):
