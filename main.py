@@ -259,6 +259,12 @@ def save_cafe_info(info):
 MENU = load_menu()
 CAFE_INFO = load_cafe_info()
 
+# Создаём файлы при первом запуске если их нет
+if not os.path.exists(MENU_FILE):
+    save_menu(MENU)
+if not os.path.exists(CAFE_INFO_FILE):
+    save_cafe_info(CAFE_INFO)
+
 def notify_admin(text):
     try:
         import requests
