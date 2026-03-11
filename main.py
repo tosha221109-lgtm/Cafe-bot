@@ -17,17 +17,53 @@ def load_users():
     with open(USERS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+ADMIN_ID = 430974371
+ADMIN_BOT_TOKEN = "8633895201:AAH1cVXc7GynUBml9uy1Smwj83RnG70cOlI"
+
+# In-memory storage
+users_db = {}
+
+def notify_admin(text):
+    try:
+        import requests
+        requests.post(
+            f"https://api.telegram.org/bot{ADMIN_BOT_TOKEN}/sendMessage",
+            json={"chat_id": ADMIN_ID, "text": text, "parse_mode": "Markdown"}
+        )
+    except Exception:
+        pass
+
 def save_user(user):
-    users = load_users()
     uid = str(user.id)
-    now = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if uid not in users:
-        users[uid] = {"name": f"{user.first_name or ""} {user.last_name or ""}".strip(), "username": user.username or "", "first_visit": now, "last_visit": now, "visits": 1}
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    is_new = uid not in users_db
+    if is_new:
+        users_db[uid] = {
+            "name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
+            "username": user.username or "",
+            "first_visit": now,
+            "last_visit": now,
+            "visits": 1,
+        }
+        # Notify admin about new user
+        username = f"@{user.username}" if user.username else "без username"
+        name = users_db[uid]["name"] or "Без имени"
+        notify_admin(
+            f"🆕 *Новый пользователь!*\n\n"
+            f"👤 {name}\n"
+            f"📱 {username}\n"
+            f"🆔 ID: {uid}\n"
+            f"👥 Всего пользователей: {len(users_db)}"
+        )
     else:
-        users[uid]["last_visit"] = now
-        users[uid]["visits"] = users[uid].get("visits", 1) + 1
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
+        users_db[uid]["last_visit"] = now
+        users_db[uid]["visits"] = users_db[uid].get("visits", 1) + 1
+    # Save to file for admin bot
+    try:
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(users_db, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 MENU = {
     "🍳 Завтраки": [
@@ -304,6 +340,7 @@ def dish_detail_keyboard(category, index):
 
 @bot.message_handler(commands=["start", "menu"])
 def cmd_start(message):
+    save_user(message.from_user)
     bot.send_message(message.chat.id, f"👋 Привет! Я бот {CAFE_INFO['name']}.\n\n{CAFE_INFO['welcome']}", reply_markup=main_menu_keyboard())
 
 @bot.message_handler(func=lambda m: m.text == "ℹ️ О нас")
