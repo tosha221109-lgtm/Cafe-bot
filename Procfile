@@ -1,1 +1,2 @@
-worker: python Cafe_bot.py
+worker: python /app/Cafe_bot.py
+
