@@ -30,7 +30,6 @@ ADMIN_ID = 430974371  # Твой Telegram ID
 USERS_FILE = "users.json"
 
 admin_bot = telebot.TeleBot(ADMIN_BOT_TOKEN)
-main_bot  = telebot.TeleBot(MAIN_BOT_TOKEN)
 
 # Состояние рассылки
 broadcast_state = {}
@@ -39,11 +38,15 @@ broadcast_state = {}
 #  🛠️  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ───────────────────────────────────────────────
 
+# In-memory users db - populated by main bot via shared file
 def load_users():
     if not os.path.exists(USERS_FILE):
         return {}
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 def is_admin(user_id):
     return user_id == ADMIN_ID
