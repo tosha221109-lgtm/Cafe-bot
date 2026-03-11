@@ -1,10 +1,33 @@
 #!/usr/bin/env python3
 import telebot
 from telebot import types
+import json
+import os
+from datetime import datetime
 
 BOT_TOKEN = "8705139639:AAHtMsc4yeK3BKY4oRj-3_juxxioUCaNZMI"
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
+USERS_FILE = "users.json"
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
+    with open(USERS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_user(user):
+    users = load_users()
+    uid = str(user.id)
+    now = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if uid not in users:
+        users[uid] = {"name": f"{user.first_name or ""} {user.last_name or ""}".strip(), "username": user.username or "", "first_visit": now, "last_visit": now, "visits": 1}
+    else:
+        users[uid]["last_visit"] = now
+        users[uid]["visits"] = users[uid].get("visits", 1) + 1
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
 
 MENU = {
     "🍳 Завтраки": [
