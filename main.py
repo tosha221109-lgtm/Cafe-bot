@@ -320,9 +320,15 @@ CAFE_INFO = {
 }
 
 
+# In-memory state
+review_state = {}
+subscribers = set()
+
 def main_menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(*[types.KeyboardButton(cat) for cat in MENU.keys()])
+    markup.add(types.KeyboardButton("⭐️ Оставить отзыв"))
+    markup.add(types.KeyboardButton("🔔 Акции и новости"))
     markup.add(types.KeyboardButton("ℹ️ О нас"))
     return markup
 
