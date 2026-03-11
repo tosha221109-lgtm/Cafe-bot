@@ -309,8 +309,9 @@ def main_menu_keyboard():
     return markup
 
 def dishes_keyboard(category):
+    menu = load_menu()
     markup = types.InlineKeyboardMarkup(row_width=1)
-    for i, dish in enumerate(MENU.get(category, [])):
+    for i, dish in enumerate(menu.get(category, [])):
         markup.add(types.InlineKeyboardButton(
             f"{dish['name']} — {dish['price']} ₽",
             callback_data=f"dish|{category}|{i}"
@@ -411,7 +412,7 @@ def unsubscribe(call):
     subscribers.discard(call.message.chat.id)
     bot.send_message(call.message.chat.id, "🔕 Вы отписались от новостей.", reply_markup=main_menu_keyboard())
 
-@bot.message_handler(func=lambda m: m.text in MENU.keys())
+@bot.message_handler(func=lambda m: m.text in load_menu().keys())
 def show_category(message):
     bot.send_message(
         message.chat.id,
@@ -440,7 +441,8 @@ def cb_category(call):
 def cb_dish(call):
     bot.answer_callback_query(call.id)
     _, category, idx = call.data.split("|")
-    dish = MENU[category][int(idx)]
+    menu = load_menu()
+    dish = menu[category][int(idx)]
     lines = [f"🍽 *{dish['name']}*"]
     if dish.get("weight"):
         lines.append(f"⚖️ Выход: {dish['weight']}")
